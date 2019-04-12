@@ -1,2 +1,2 @@
 # yami-redis
-类Redis的NoSQL缓存(Java实现)
+兼容Redis的NoSQL缓存
