@@ -17,7 +17,7 @@ public class Application {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        ChannelPipeline entries = socketChannel.pipeline().addLast(new ChannelInboundHandlerAdapter() {
+                        socketChannel.pipeline().addLast(new ChannelInboundHandlerAdapter() {
                             @Override
                             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                                 ((ByteBuf) msg).release();
