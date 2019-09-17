@@ -12,10 +12,8 @@ public class InboundLogHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf in = (ByteBuf) msg;
-        int size = in.readableBytes();
-        logger.info(in.readCharSequence(size, Charset.forName("UTF-8")));
-        ByteBuf out = ctx.alloc().buffer().writeBytes(("+ok\r\n").getBytes());
-        ctx.writeAndFlush(out);
+        logger.debug("InboundLogHandler.channelRead");
+        logger.info(((ByteBuf) msg).toString(Charset.forName("UTF-8")));
+        ctx.fireChannelRead(msg);
     }
 }

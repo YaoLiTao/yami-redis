@@ -3,6 +3,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 
@@ -33,8 +34,8 @@ public class Application {
 
                         socketChannel.pipeline()
                                 .addLast(new InboundLogHandler())
-                                .addLast(new OutboundLogHandler())
-                                .addLast(new RespDispatcher(1024));
+                                .addLast(new LineBasedFrameDecoder(1024))
+                                .addLast(new RespDispatcher());
 
                     }
                 })
