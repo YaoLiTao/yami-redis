@@ -26,6 +26,9 @@ public class Application {
     // 出站日志Handler
     private static final OutboundLogHandler outboundLogHandler = new OutboundLogHandler();
 
+    // 协议Handler
+    private static final RespDispatcher respDispatcher = new RespDispatcher();
+
     static {
         // 配置log4j
         BasicConfigurator.configure();
@@ -52,7 +55,7 @@ public class Application {
                             socketChannel.pipeline()
                                     .addLast(inboundLogHandler)
                                     .addLast(outboundLogHandler)
-                                    .addLast(new RespDispatcher());
+                                    .addLast(respDispatcher);
 
                         }
                     })

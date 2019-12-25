@@ -18,21 +18,21 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
     // 日志
     private Logger logger = Logger.getLogger(RespDispatcher.class);
-    // 参数个数行状态
+    // 参数数量状态
     private static final byte PARAM_COUNT_FRAME_STATE = 0;
-    // 参数长度值行状态
+    // 参数长度值状态
     private static final byte PARAM_LENGTH_FRAME_STATE = 1;
-    // 实际数据行状态
+    // 实际数据状态
     private static final byte DATA_FRAME_STATE = 2;
-    // 当前协议步骤
+    // 协议步骤
     private byte parseState = PARAM_COUNT_FRAME_STATE;
-    // 当前协议命令
+    // 协议命令
     private String cmd = null;
-    // 当前协议参数总数量
+    // 参数数量
     private long paramCount = 0;
-    // 当前协议参数正在行数索引
+    // 参数index
     private long paramCountIndex = 0;
-    // 当前协议的下一个参数值长度
+    // 参数值长度
     private long nextParamLength = 0;
     // 实际参数
     private LinkedList<String> params = new LinkedList<>();
@@ -45,7 +45,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
             // 找到协议"参数个数"行的结尾位置
             int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
             if (lineEndPos == -1) return;
-            // 获取协议参数个数
+            // 获取协议 <参数数量>
             paramCount = Integer.valueOf(
                     in.readCharSequence(lineEndPos - 3,
                             Charset.forName("ASCII")).toString());
@@ -74,15 +74,8 @@ public class RespDispatcher extends ByteToMessageDecoder {
         } else if (parseState == DATA_FRAME_STATE && paramCountIndex < paramCount) {
             logger.debug(" 实际数据");
 
-            for (int i = 0; i < in.readerIndex(); i++) {
-
-            }
-            paramCountIndex++;
-            if (paramCountIndex == paramCountIndex){
-
-            }
         } else {
-            logger.error("协议解析错误 buff:\n" + in.toString());
+            logger.error("协议解析错误 buff:\n" + in.toString(Charset.defaultCharset()));
             ReferenceCountUtil.release(in);
         }
     }
