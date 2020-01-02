@@ -8,6 +8,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,9 +47,9 @@ public class RespDispatcher extends ByteToMessageDecoder {
             int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
             if (lineEndPos == -1) return;
             // 获取协议 <参数数量>
-            paramCount = Integer.valueOf(
+            paramCount = Integer.parseInt(
                     in.readCharSequence(lineEndPos - 3,
-                            Charset.forName("ASCII")).toString());
+                            StandardCharsets.US_ASCII).toString());
             logger.debug(" * 参数数量: " + paramCount);
 
             // 抛除'\r\n'
@@ -61,9 +62,9 @@ public class RespDispatcher extends ByteToMessageDecoder {
             int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
             if (lineEndPos == -1) return;
             // 获取协议参数长度
-            nextParamLength = Integer.valueOf(
+            nextParamLength = Integer.parseInt(
                     in.readCharSequence(lineEndPos - 3,
-                            Charset.forName("ASCII")).toString());
+                            StandardCharsets.US_ASCII).toString());
 
             logger.debug(" $ 参数长度: " + nextParamLength);
 
