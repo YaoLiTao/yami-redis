@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.ByteProcessor;
-import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
 
 import java.nio.charset.Charset;
@@ -19,14 +18,14 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
     // 日志
     private Logger logger = Logger.getLogger(RespDispatcher.class);
-    // 参数数量状态
-    private static final byte PARAM_COUNT_FRAME_STATE = 0;
-    // 参数长度值状态
-    private static final byte PARAM_LENGTH_FRAME_STATE = 1;
-    // 实际数据状态
-    private static final byte DATA_FRAME_STATE = 2;
-    // 协议步骤
-    private byte parseState = PARAM_COUNT_FRAME_STATE;
+
+    private enum State {
+        DECODE_PARAM_COUNT,// 参数数量
+        DECODE_PARAM_LENGTH,// 参数长度
+        DECODE_PARAM_DATA// 参数具体数据
+    }
+
+    private State state = State.DECODE_PARAM_COUNT;
     // 协议命令
     private String cmd = null;
     // 参数数量
@@ -41,49 +40,64 @@ public class RespDispatcher extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
         logger.debug("解析数据：" + in.toString(Charset.defaultCharset()));
-        if (parseState == PARAM_COUNT_FRAME_STATE && in.readChar() == '*') {
-
-            // 找到协议"参数个数"行的结尾位置
-            int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
-            if (lineEndPos == -1) return;
-            // 获取协议 <参数数量>
-            paramCount = Integer.parseInt(
-                    in.readCharSequence(lineEndPos - 3,
-                            StandardCharsets.US_ASCII).toString());
-            logger.debug(" * 参数数量: " + paramCount);
-
-            // 抛除'\r\n'
-            in.readerIndex(lineEndPos + 1);
-            // 设置状态为参数长度状态
-            parseState = PARAM_LENGTH_FRAME_STATE;
-        } else if (parseState == PARAM_LENGTH_FRAME_STATE && in.readChar() == '$' && paramCountIndex < paramCount) {
-
-            // 找到"参数长度值"行的结尾位置
-            int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
-            if (lineEndPos == -1) return;
-            // 获取协议参数长度
-            nextParamLength = Integer.parseInt(
-                    in.readCharSequence(lineEndPos - 3,
-                            StandardCharsets.US_ASCII).toString());
-
-            logger.debug(" $ 参数长度: " + nextParamLength);
-
-            // 抛除'\r\n'
-            in.readerIndex(lineEndPos + 1);
-            // 设置状态为实际数据状态
-            parseState = DATA_FRAME_STATE;
-        } else if (parseState == DATA_FRAME_STATE && paramCountIndex < paramCount) {
-            logger.debug(" 实际数据");
-
-        } else {
-            logger.error("协议解析错误 buff:\n" + in.toString(Charset.defaultCharset()));
-            ReferenceCountUtil.release(in);
+        try {
+            for (; ; ) {
+                switch (state) {
+                    case DECODE_PARAM_COUNT:
+                        if (!decodeParamCount(in)) return;
+                        break;
+                    case DECODE_PARAM_LENGTH:
+                        if (!decodeParamLength(in, out)) return;
+                        break;
+                    case DECODE_PARAM_DATA:
+                        if (!decodeParamData(in, out)) return;
+                        break;
+                    default:
+                        throw new Exception("Unknown state: " + state);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        cause.printStackTrace();
+    private boolean decodeParamCount(ByteBuf in) {
+        logger.debug("参数数量：");
+        int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
+        if (lineEndPos == -1) return false;
+        // 获取协议 <参数数量>
+        paramCount = Integer.parseInt(
+                in.readCharSequence(lineEndPos - 3,
+                        StandardCharsets.US_ASCII).toString());
+        logger.debug(" * 参数数量: " + paramCount);
+        // 去掉'\r\n'
+        in.readerIndex(lineEndPos + 1);
+        // 设置状态为参数长度
+        state = State.DECODE_PARAM_LENGTH;
+        return true;
     }
 
+    private boolean decodeParamLength(ByteBuf in, List<Object> out) {
+        logger.debug("参数长度：");
+
+        int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
+        if (lineEndPos == -1) return false;
+        // 获取参数长度
+        nextParamLength = Integer.parseInt(
+                in.readCharSequence(lineEndPos - 3,
+                        StandardCharsets.US_ASCII).toString());
+        logger.debug(" $ 参数长度: " + nextParamLength);
+        // 去掉'\r\n'
+        in.readerIndex(lineEndPos + 1);
+        // 设置状态为参数具体数据
+        state = State.DECODE_PARAM_DATA;
+        return true;
+    }
+
+    private boolean decodeParamData(ByteBuf in, List<Object> out) {
+        logger.debug("参数具体数据：");
+
+        paramCountIndex++;
+        return true;
+    }
 }
