@@ -51,6 +51,9 @@ public class RespDispatcher extends ByteToMessageDecoder {
                     case DECODE_PARAM_DATA:
                         if (!decodeParamData(in)) return;
                         break;
+                    case COMMAND_INTEGRATION:
+                        commandIntegration(out);
+                        return;
                     default:
                         throw new Exception("Unknown state: " + state);
                 }
@@ -138,12 +141,10 @@ public class RespDispatcher extends ByteToMessageDecoder {
         return true;
     }
 
-    private boolean commandIntegration(List<Object> out) {
-
+    private void commandIntegration(List<Object> out) {
         final String cmd = params.get(0).toString(StandardCharsets.US_ASCII);
         logger.debug(cmd);
-
+        out.add(params);
         resetDecoder();
-        return true;
     }
 }
