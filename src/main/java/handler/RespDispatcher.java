@@ -22,20 +22,19 @@ public class RespDispatcher extends ByteToMessageDecoder {
     private enum State {
         DECODE_PARAM_COUNT,// 参数数量
         DECODE_PARAM_LENGTH,// 参数长度
-        DECODE_PARAM_DATA// 参数具体数据
+        DECODE_PARAM_DATA,// 参数具体数据
+        COMMAND_INTEGRATION//把参数整合成命令
     }
 
     private State state = State.DECODE_PARAM_COUNT;
-    // 协议命令
-    private String cmd = null;
     // 参数数量
-    private long paramCount = 0;
+    private int paramCount = 0;
     // 参数index
-    private long paramCountIndex = 0;
+    private int paramCountIndex = 0;
     // 参数值长度
-    private long nextParamLength = 0;
-    // 实际参数
-    private LinkedList<String> params = new LinkedList<>();
+    private int paramContentLength = 0;
+    // 实际数据
+    private LinkedList<ByteBuf> params = new LinkedList<>();
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
@@ -47,57 +46,104 @@ public class RespDispatcher extends ByteToMessageDecoder {
                         if (!decodeParamCount(in)) return;
                         break;
                     case DECODE_PARAM_LENGTH:
-                        if (!decodeParamLength(in, out)) return;
+                        if (!decodeParamLength(in)) return;
                         break;
                     case DECODE_PARAM_DATA:
-                        if (!decodeParamData(in, out)) return;
+                        if (!decodeParamData(in)) return;
                         break;
                     default:
                         throw new Exception("Unknown state: " + state);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            resetDecoder();
+            throw e;
         }
     }
 
+    private void resetDecoder() {
+        state = State.DECODE_PARAM_COUNT;
+        paramCount = 0;
+        paramCountIndex = 0;
+        paramContentLength = 0;
+        params = new LinkedList<>();
+    }
+
     private boolean decodeParamCount(ByteBuf in) {
-        logger.debug("参数数量：");
-        int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
-        if (lineEndPos == -1) return false;
+        logger.debug("参数数量");
+        if (!in.isReadable()) return false;
+        // 获取行类型
+        final int initialIndex = in.readerIndex();
+        final byte lineType = in.readByte();
+        if (lineType != '*') {
+            in.readerIndex(initialIndex);
+            resetDecoder();
+            return false;
+        }
+
+        // 获取行尾的下标
+        final int lineEndIndex = in.forEachByte(ByteProcessor.FIND_CRLF);
+        if (lineEndIndex == -1) return false;
+
         // 获取协议 <参数数量>
         paramCount = Integer.parseInt(
-                in.readCharSequence(lineEndPos - 3,
+                in.readCharSequence(lineEndIndex - 3,
                         StandardCharsets.US_ASCII).toString());
         logger.debug(" * 参数数量: " + paramCount);
-        // 去掉'\r\n'
-        in.readerIndex(lineEndPos + 1);
-        // 设置状态为参数长度
+
+        // 去掉'\r\n'，切换为DECODE_PARAM_LENGTH状态
+        in.readerIndex(lineEndIndex + 1);
         state = State.DECODE_PARAM_LENGTH;
         return true;
     }
 
-    private boolean decodeParamLength(ByteBuf in, List<Object> out) {
-        logger.debug("参数长度：");
+    private boolean decodeParamLength(ByteBuf in) {
+        logger.debug("参数长度");
 
-        int lineEndPos = in.forEachByte(ByteProcessor.FIND_CRLF);
-        if (lineEndPos == -1) return false;
+        // 获取行类型
+        final int initialIndex = in.readerIndex();
+        final byte lineType = in.readByte();
+        if (lineType != '$') {
+            in.readerIndex(initialIndex);
+            resetDecoder();
+            return false;
+        }
+
+        // 获取行尾的下标
+        final int lineEndIndex = in.forEachByte(ByteProcessor.FIND_CRLF);
+        if (lineEndIndex == -1) return false;
+
         // 获取参数长度
-        nextParamLength = Integer.parseInt(
-                in.readCharSequence(lineEndPos - 3,
+        paramContentLength = Integer.parseInt(
+                in.readCharSequence(lineEndIndex - 3,
                         StandardCharsets.US_ASCII).toString());
-        logger.debug(" $ 参数长度: " + nextParamLength);
-        // 去掉'\r\n'
-        in.readerIndex(lineEndPos + 1);
-        // 设置状态为参数具体数据
+        logger.debug(" $ 参数长度: " + paramContentLength);
+
+        // 去掉'\r\n'，切换为DECODE_PARAM_DATA状态
+        in.readerIndex(lineEndIndex + 1);
         state = State.DECODE_PARAM_DATA;
         return true;
     }
 
-    private boolean decodeParamData(ByteBuf in, List<Object> out) {
-        logger.debug("参数具体数据：");
+    private boolean decodeParamData(ByteBuf in) {
+        logger.debug("参数具体数据");
 
+        final int initialIndex = in.readerIndex();
+        if (!in.isReadable(paramContentLength + 2)) return false;
+        ByteBuf param = in.copy(initialIndex, paramContentLength);
+        in.readerIndex(initialIndex + paramCountIndex + 2);
+        params.add(param);
         paramCountIndex++;
+        state = paramCountIndex >= paramCount ? State.COMMAND_INTEGRATION : State.DECODE_PARAM_LENGTH;
+        return true;
+    }
+
+    private boolean commandIntegration(List<Object> out) {
+
+        final String cmd = params.get(0).toString(StandardCharsets.US_ASCII);
+        logger.debug(cmd);
+
+        resetDecoder();
         return true;
     }
 }
