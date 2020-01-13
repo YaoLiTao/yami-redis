@@ -73,7 +73,6 @@ public class RespDispatcher extends ByteToMessageDecoder {
     }
 
     private boolean decodeParamCount(ByteBuf in) {
-        logger.debug("参数数量");
         if (!in.isReadable()) return false;
         // 获取行类型
         final int initialIndex = in.readerIndex();
@@ -90,7 +89,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
         // 获取协议 <参数数量>
         paramCount = Integer.parseInt(
-                in.readCharSequence(lineEndIndex - 3,
+                in.readCharSequence(lineEndIndex - in.readerIndex(),
                         StandardCharsets.US_ASCII).toString());
         logger.debug(" * 参数数量: " + paramCount);
 
@@ -101,7 +100,6 @@ public class RespDispatcher extends ByteToMessageDecoder {
     }
 
     private boolean decodeParamLength(ByteBuf in) {
-        logger.debug("参数长度");
 
         // 获取行类型
         final int initialIndex = in.readerIndex();
@@ -118,7 +116,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
         // 获取参数长度
         paramContentLength = Integer.parseInt(
-                in.readCharSequence(lineEndIndex - 3,
+                in.readCharSequence(lineEndIndex - in.readerIndex(),
                         StandardCharsets.US_ASCII).toString());
         logger.debug(" $ 参数长度: " + paramContentLength);
 
