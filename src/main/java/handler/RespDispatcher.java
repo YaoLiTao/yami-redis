@@ -52,7 +52,8 @@ public class RespDispatcher extends ByteToMessageDecoder {
                         if (!decodeParamData(in)) return;
                         break;
                     case COMMAND_INTEGRATION:
-                        commandIntegration(out);
+                        commandIntegration();
+                        resetDecoder();
                         return;
                     default:
                         throw new Exception("Unknown state: " + state);
@@ -94,7 +95,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
         logger.debug(" * 参数数量: " + paramCount);
 
         // 去掉'\r\n'，切换为DECODE_PARAM_LENGTH状态
-        in.readerIndex(lineEndIndex + 1);
+        in.readerIndex(lineEndIndex + 2);
         state = State.DECODE_PARAM_LENGTH;
         return true;
     }
@@ -121,28 +122,28 @@ public class RespDispatcher extends ByteToMessageDecoder {
         logger.debug(" $ 参数长度: " + paramContentLength);
 
         // 去掉'\r\n'，切换为DECODE_PARAM_DATA状态
-        in.readerIndex(lineEndIndex + 1);
+        in.readerIndex(lineEndIndex + 2);
         state = State.DECODE_PARAM_DATA;
         return true;
     }
 
     private boolean decodeParamData(ByteBuf in) {
-        logger.debug("参数具体数据");
-
         final int initialIndex = in.readerIndex();
         if (!in.isReadable(paramContentLength + 2)) return false;
+
+        //读取具体参数
         ByteBuf param = in.copy(initialIndex, paramContentLength);
-        in.readerIndex(initialIndex + paramCountIndex + 2);
+        in.readerIndex(initialIndex + paramContentLength + 2);
+        logger.debug("具体参数: " + param.toString(StandardCharsets.US_ASCII));
+
         params.add(param);
         paramCountIndex++;
         state = paramCountIndex >= paramCount ? State.COMMAND_INTEGRATION : State.DECODE_PARAM_LENGTH;
         return true;
     }
 
-    private void commandIntegration(List<Object> out) {
+    private void commandIntegration() {
         final String cmd = params.get(0).toString(StandardCharsets.US_ASCII);
-        logger.debug(cmd);
-        out.add(params);
-        resetDecoder();
+        logger.debug("命令: " + cmd);
     }
 }

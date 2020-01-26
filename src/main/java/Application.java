@@ -53,7 +53,6 @@ public class Application {
                                     .addLast(inboundLogHandler)
                                     .addLast(outboundLogHandler)
                                     .addLast(new RespDispatcher());
-
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
