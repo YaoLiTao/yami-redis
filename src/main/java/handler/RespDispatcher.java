@@ -1,5 +1,6 @@
 package handler;
 
+import cmd.CmdDispatcher;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -142,8 +143,9 @@ public class RespDispatcher extends ByteToMessageDecoder {
         return true;
     }
 
-    private void commandIntegration() {
+    private void commandIntegration() throws Exception {
         final String cmd = params.get(0).toString(StandardCharsets.US_ASCII);
         logger.debug("命令: " + cmd);
+        CmdDispatcher.dispatch(cmd, params);
     }
 }
