@@ -5,7 +5,7 @@ import exception.NoSuchCommandException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class CmdDispatcher {
@@ -13,19 +13,19 @@ public class CmdDispatcher {
     public static ByteBuf dispatch(String cmd, List<ByteBuf> params) throws Exception {
         switch (cmd) {
             case "COMMAND":
-                return command(params.get(1), params.get(2));
+                return command();
             default:
                 throw new NoSuchCommandException();
         }
     }
 
-    public static ByteBuf command(ByteBuf key, ByteBuf value) {
-        return Unpooled.wrappedBuffer("ok".getBytes(Charset.forName("UTF-8")));
+    public static ByteBuf command() {
+        return Unpooled.wrappedBuffer("ok".getBytes(StandardCharsets.US_ASCII));
     }
 
     public static ByteBuf set(ByteBuf key, ByteBuf value) {
         InnerCache.hash.put(key, value);
-        return Unpooled.wrappedBuffer("1".getBytes(Charset.forName("UTF-8")));
+        return Unpooled.wrappedBuffer("1".getBytes(StandardCharsets.US_ASCII));
     }
 
     public static ByteBuf get(ByteBuf key) {

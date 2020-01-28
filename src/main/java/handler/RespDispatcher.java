@@ -2,6 +2,7 @@ package handler;
 
 import cmd.CmdDispatcher;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.ByteProcessor;
@@ -53,7 +54,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
                         if (!decodeParamData(in)) return;
                         break;
                     case COMMAND_INTEGRATION:
-                        commandIntegration();
+                        commandIntegration(ctx.channel());
                         resetDecoder();
                         return;
                     default:
@@ -143,9 +144,10 @@ public class RespDispatcher extends ByteToMessageDecoder {
         return true;
     }
 
-    private void commandIntegration() throws Exception {
+    private void commandIntegration(Channel channel) throws Exception {
         final String cmd = params.get(0).toString(StandardCharsets.US_ASCII);
         logger.debug("命令: " + cmd);
-        CmdDispatcher.dispatch(cmd, params);
+        ByteBuf res = CmdDispatcher.dispatch(cmd, params);
+        channel.write(res);
     }
 }
