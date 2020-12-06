@@ -1,6 +1,5 @@
 package cmd;
 
-import cache.InnerCache;
 import exception.NoSuchCommandException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -24,11 +23,10 @@ public class CmdDispatcher {
     }
 
     public static ByteBuf set(ByteBuf key, ByteBuf value) {
-        InnerCache.hash.put(key, value);
         return Unpooled.wrappedBuffer("1".getBytes(StandardCharsets.US_ASCII));
     }
 
     public static ByteBuf get(ByteBuf key) {
-        return InnerCache.hash.get(key);
+        return null;
     }
 }
