@@ -1,13 +1,5 @@
 package cache;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
-import io.netty.util.HashingStrategy;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Random;
-
 public class DictType<K> {
 
     private static final int c1 = 0xcc9e2d51;
