@@ -49,6 +49,7 @@ public class DictType<K> {
         // 余数阶段
         int r = 0;
         if (remainingBytesCount > 0) {
+            // 余数按大端序转为int
             for (int j = 0; j < remainingBytesCount; j++) {
                 r <<= 8;
                 r |= key[i + j] & 0xFF;
