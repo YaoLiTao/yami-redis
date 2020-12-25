@@ -1,9 +1,12 @@
 package cache;
 
+import com.google.common.base.Stopwatch;
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import io.netty.util.HashingStrategy;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 
 public class DictType<K> {
 
@@ -19,13 +22,10 @@ public class DictType<K> {
         int hash = seed;
         int len = key.length;
 
-        int remainingBytesCount = len % 4;
-        int fourByteChunkCount = len - remainingBytesCount;
-
         // 整倍数阶段
         int i = 0;
-        for (; i < fourByteChunkCount; i += 4) {
-            // 小端序把每4字节转为int
+        for (; i + 4 <= len; i += 4) {
+            // 按小端序把每4字节转为int
             int k = 0;
             k |= key[i + 3] & 0xFF;
             k <<= 8;
@@ -47,27 +47,24 @@ public class DictType<K> {
         }
 
         // 余数阶段
+        // 按大端序转为int
         int r = 0;
-        if (remainingBytesCount > 0) {
-            // 余数按大端序转为int
-            for (int j = 0; j < remainingBytesCount; j++) {
-                r <<= 8;
-                r |= key[i + j] & 0xFF;
-            }
-            r *= c1;
-            r = (r << r1) | (r >>> (32 - r1));
-            r *= c2;
-
-            hash ^= r;
+        for (int shift = 0; i < len; i++, shift += 8) {
+            int t = key[i] & 0xFF;
+            r ^= t << shift;
         }
+        r *= c1;
+        r = (r << r1) | (r >>> (32 - r1));
+        r *= c2;
+
+        hash ^= r;
 
         hash ^= len;
-
-        hash ^= (hash >>> 16);
+        hash ^= hash >>> 16;
         hash *= 0x85ebca6b;
-        hash ^= (hash >>> 13);
+        hash ^= hash >>> 13;
         hash *= 0xc2b2ae35;
-        hash ^= (hash >>> 16);
+        hash ^= hash >>> 16;
         return hash;
     }
 
