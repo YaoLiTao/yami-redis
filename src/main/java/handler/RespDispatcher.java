@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
+import static handler.RespState.*;
+
 /**
  * Redis协议分发器
  */
@@ -21,14 +23,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
     // 日志
     private Logger logger = Logger.getLogger(RespDispatcher.class);
 
-    private enum State {
-        DECODE_PARAM_COUNT,// 参数数量
-        DECODE_PARAM_LENGTH,// 参数长度
-        DECODE_PARAM_DATA,// 参数具体数据
-        COMMAND_INTEGRATION//把参数整合成命令
-    }
-
-    private State state = State.DECODE_PARAM_COUNT;
+    private RespState state = DECODE_PARAM_COUNT;
     // 参数数量
     private int paramCount = 0;
     // 参数index
@@ -68,7 +63,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
     }
 
     private void resetDecoder() {
-        state = State.DECODE_PARAM_COUNT;
+        state = DECODE_PARAM_COUNT;
         paramCount = 0;
         paramCountIndex = 0;
         paramContentLength = 0;
@@ -98,7 +93,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
         // 去掉'\r\n'，切换为DECODE_PARAM_LENGTH状态
         in.readerIndex(lineEndIndex + 2);
-        state = State.DECODE_PARAM_LENGTH;
+        state = DECODE_PARAM_LENGTH;
         return true;
     }
 
@@ -125,7 +120,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
         // 去掉'\r\n'，切换为DECODE_PARAM_DATA状态
         in.readerIndex(lineEndIndex + 2);
-        state = State.DECODE_PARAM_DATA;
+        state = DECODE_PARAM_DATA;
         return true;
     }
 
@@ -140,7 +135,7 @@ public class RespDispatcher extends ByteToMessageDecoder {
 
         params.add(param);
         paramCountIndex++;
-        state = paramCountIndex >= paramCount ? State.COMMAND_INTEGRATION : State.DECODE_PARAM_LENGTH;
+        state = paramCountIndex >= paramCount ? COMMAND_INTEGRATION : DECODE_PARAM_LENGTH;
         return true;
     }
 

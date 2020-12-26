@@ -27,6 +27,9 @@ public class AdList<T> {
     @Setter
     private BiFunction<T, T, Boolean> match;
 
+    /**
+     * 添加节点
+     */
     private void listAddNode(T value, boolean head) {
         ListNode<T> newNode = new ListNode<>();
         newNode.value = value;
@@ -48,14 +51,23 @@ public class AdList<T> {
         len++;
     }
 
+    /**
+     * 添加节点到头部
+     */
     public void listAddNodeHead(T value) {
         listAddNode(value, true);
     }
 
+    /**
+     * 添加节点到尾部
+     */
     public void listAddNodeTail(T value) {
         listAddNode(value, false);
     }
 
+    /**
+     * 添加节点到某个节点的前/后面
+     */
     public void listInsertNode(ListNode<T> oldNode, T value, boolean after) {
         ListNode<T> newNode = new ListNode<>();
         newNode.value = value;
@@ -81,6 +93,9 @@ public class AdList<T> {
         len++;
     }
 
+    /**
+     * 通过值搜索节点
+     */
     public ListNode<T> listSearchKey(T value) {
         ListNode<T> curNode = head;
         while (Objects.nonNull(curNode)) {
@@ -98,6 +113,9 @@ public class AdList<T> {
         return null;
     }
 
+    /**
+     * 通过位置获取节点
+     */
     public ListNode<T> listIndex(long index) {
         ListNode<T> tempNode;
 
@@ -116,6 +134,9 @@ public class AdList<T> {
         return tempNode;
     }
 
+    /**
+     * 删除节点
+     */
     public void listDelNode(ListNode<T> node) {
         if (Objects.nonNull(node.prev)) {
             node.prev.next = node.next;
