@@ -8,9 +8,10 @@ public class DictType<K> {
     private static final int r2 = 13;
     private static final int m = 5;
     private static final int n = 0xe6546b64;
+    private static final int seed = 0;
 
     // MurmurHash_32
-    public int hashFunction(byte[] key, int seed) {
+    public int hashFunction(byte[] key) {
         int hash = seed;
         int len = key.length;
 

@@ -1,10 +1,17 @@
 package cache;
 
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
 /**
  * 哈希节点表
  */
+@NoArgsConstructor
+@AllArgsConstructor
 public class DictEntry<K, V> {
-    K key;
-    V value;
-    DictEntry<K, V> next;
+
+    public K key;
+    public V value;
+    public DictEntry<K, V> next;
+
 }
