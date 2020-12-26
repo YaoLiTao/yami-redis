@@ -9,7 +9,7 @@ import java.util.Objects;
  */
 public class Dict<K, V> {
 
-    private DictHt<K, V>[] ht = new DictHt[2];
+    private DictHt<K, V>[] ht;
     private DictType<K> type;
     private int rehashIdx;
 
@@ -17,6 +17,7 @@ public class Dict<K, V> {
     private static final int initHashTableSize = 8;
 
     public Dict() {
+        this.ht = new DictHt[2];
         this.ht[0] = new DictHt<>(initHashTableSize);
         this.type = new DictType<>();
         this.rehashIdx = -1;
@@ -128,7 +129,7 @@ public class Dict<K, V> {
     }
 
     public Dict<K, V> dictReplace(K key, V value) {
-        return this;
+        return dictAdd(key, value);
     }
 
     public V dictFetchValue(K key) {
