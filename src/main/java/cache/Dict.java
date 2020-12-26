@@ -31,13 +31,15 @@ public class Dict<K, V> {
         dictEntry.key = key;
         dictEntry.value = value;
 
-        // 如果现在处于rehash状态，直接rehash
+        // 如果现在处于rehash状态，直接rehash。在rehash状态需要删除原来在ht[0]已有的相同值
         if (rehashIdx > -1) {
+            dictDeleteRow(ht[0], key);
             rehash();
             dictAddRaw(ht[1], dictEntry);
         } else if ((double) ((ht[0].used + 1) / ht[0].table.length) > 1 && !Server.isInBgSaveOrBgRewriteAOFCmd()
                 || (double) ((ht[0].used + 1) / ht[0].table.length) > 5 && Server.isInBgSaveOrBgRewriteAOFCmd()) {
             extendDictHt();
+            dictDeleteRow(ht[0], key);
             rehash();
             dictAddRaw(ht[1], dictEntry);
         } else {
@@ -85,9 +87,9 @@ public class Dict<K, V> {
         do {
             // 超过界限，rehash完成，h[0]变为h[0]，ht[1]置为空
             if (rehashIdx >= ht[0].table.length) {
-                rehashIdx = -1;
                 ht[0] = ht[1];
                 ht[1] = null;
+                rehashIdx = -1;
                 return;
             }
 
@@ -105,7 +107,7 @@ public class Dict<K, V> {
     }
 
     /**
-     * 创建容量一个大于等于两倍ht[0].used且为2^n的DictHt[1]
+     * 拓展hashtable，创建容量一个大于等于两倍ht[0].used且为2^n的DictHt[1]
      */
     private void extendDictHt() {
         long used = ht[0].used * 2;
@@ -117,7 +119,7 @@ public class Dict<K, V> {
     }
 
     /**
-     * 创建容量一个小于ht[0].used且为2^n的DictHt[1]
+     * 缩小hashtable，创建容量一个小于ht[0].used且为2^n的DictHt[1]
      */
     private void reduceDictHt() {
         long used = ht[0].used;
@@ -133,6 +135,8 @@ public class Dict<K, V> {
     }
 
     public V dictFetchValue(K key) {
+//        int position = (int) (dictEntry.key.hashCode() & ht.sizeMask);
+//        DictEntry<K, V> dictEntry = ht[2].table[];
         return null;
     }
 
@@ -142,6 +146,10 @@ public class Dict<K, V> {
 
     public Dict<K, V> dictDelete(K key) {
         // 删除的时候小于8就不再缩小rehash
+        return this;
+    }
+
+    private Dict<K, V> dictDeleteRow(DictHt<K, V> ht, K key) {
         return this;
     }
 }
