@@ -2,6 +2,7 @@ package cache;
 
 import server.Server;
 
+import java.security.SecureRandom;
 import java.util.Objects;
 
 /**
@@ -12,6 +13,7 @@ public class Dict<K, V> {
     private DictHt<K, V>[] ht;
     private DictType<K> type;
     private int rehashIdx;
+    private final SecureRandom random = new SecureRandom();
 
     // 保证初始化后，插入第一个元素时，负载因子保持在1以下
     private static final int initHashTableSize = 8;
@@ -31,18 +33,20 @@ public class Dict<K, V> {
         dictEntry.key = key;
         dictEntry.value = value;
 
-        // 如果现在处于rehash状态，直接rehash。在rehash状态需要删除原来在ht[0]已有的相同值
         if (rehashIdx > -1) {
-            dictDeleteRow(ht[0], key);
+            // 如果现在处于rehash状态，直接rehash。并且需要删除原来在ht[0]已有的相同值
+            dictDeleteRow(ht[0], key); // todo 防止ht[0]还有一个相同的节点，需要优化
             rehash();
             dictAddRaw(ht[1], dictEntry);
         } else if ((double) ((ht[0].used + 1) / ht[0].table.length) > 1 && !Server.isInBgSaveOrBgRewriteAOFCmd()
                 || (double) ((ht[0].used + 1) / ht[0].table.length) > 5 && Server.isInBgSaveOrBgRewriteAOFCmd()) {
+            // 如果没有在rehash状态，满足两个负载因子条件之一，扩展ht[1]，开始rehash
             extendDictHt();
             dictDeleteRow(ht[0], key);
             rehash();
             dictAddRaw(ht[1], dictEntry);
         } else {
+            // 不在rehash状态并且不满足两个负载因子条件之一，常规添加节点
             dictAddRaw(ht[0], dictEntry);
         }
         return this;
@@ -101,6 +105,7 @@ public class Dict<K, V> {
 
         // 移动当前位置所有的节点到ht[1]
         do {
+            ht[0].used--;
             dictAddRaw(ht[1], dictEntry);
             dictEntry = dictEntry.next;
         } while (Objects.nonNull(dictEntry));
@@ -125,19 +130,33 @@ public class Dict<K, V> {
         long used = ht[0].used;
         int shift = 0;
         while (used >>> (++shift) != 0) ;
-        int size = 1 << (shift - 1);
+        int size = 1 << (shift - 1); // TODO BUG?
         ht[1] = new DictHt<>(size);
         rehashIdx = 0; // 开启rehash
     }
 
+    /**
+     * @see Dict#dictAdd(java.lang.Object, java.lang.Object)
+     */
     public Dict<K, V> dictReplace(K key, V value) {
         return dictAdd(key, value);
     }
 
     public V dictFetchValue(K key) {
-//        int position = (int) (dictEntry.key.hashCode() & ht.sizeMask);
-//        DictEntry<K, V> dictEntry = ht[2].table[];
-        return null;
+        V v;
+        if (rehashIdx > -1 && Objects.nonNull(v = dictFetchValueRaw(ht[1], key))) {
+            return v;
+        }
+        return dictFetchValueRaw(ht[0], key);
+    }
+
+    private V dictFetchValueRaw(DictHt<K, V> ht, K key) {
+        int position = (int) (key.hashCode() & ht.sizeMask);
+        DictEntry<K, V> dictEntry = ht.table[position];
+        while (Objects.nonNull(dictEntry) && !dictEntry.key.equals(key)) {
+            dictEntry = dictEntry.next;
+        }
+        return Objects.isNull(dictEntry) ? null : dictEntry.value;
     }
 
     public V getRandomKey() {
