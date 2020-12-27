@@ -34,20 +34,22 @@ public class Dict<K, V> {
         dictEntry.value = value;
 
         if (rehashIdx > -1) {
-            // 如果现在处于rehash状态，直接rehash。并且需要删除原来在ht[0]已有的相同值
+            // rehash状态需要删除原来在ht[0]已有的相同值
             dictDeleteRow(ht[0], key); // todo 防止ht[0]还有一个相同的节点，需要优化
-            rehash();
-            dictAddRaw(ht[1], dictEntry);
-        } else if ((double) ((ht[0].used + 1) / ht[0].table.length) > 1 && !Server.isInBgSaveOrBgRewriteAOFCmd()
-                || (double) ((ht[0].used + 1) / ht[0].table.length) > 5 && Server.isInBgSaveOrBgRewriteAOFCmd()) {
-            // 如果没有在rehash状态，满足两个负载因子条件之一，扩展ht[1]，开始rehash
-            extendDictHt();
-            dictDeleteRow(ht[0], key);
-            rehash();
             dictAddRaw(ht[1], dictEntry);
         } else {
-            // 不在rehash状态并且不满足两个负载因子条件之一，常规添加节点
+            // 常规添加节点
             dictAddRaw(ht[0], dictEntry);
+        }
+
+        if (rehashIdx > -1) {
+            // 处于rehash状态，直接rehash。
+            rehash();
+        } else if ((double) (ht[0].used / ht[0].table.length) > 1 && !Server.isInBgSaveOrBgRewriteAOFCmd()
+                || (double) (ht[0].used / ht[0].table.length) > 5 && Server.isInBgSaveOrBgRewriteAOFCmd()) {
+            // 不在rehash状态，满足两个负载因子条件之一，创建ht[1]，开始扩展rehash
+            extendDictHt();
+            rehash();
         }
         return this;
     }
@@ -74,11 +76,11 @@ public class Dict<K, V> {
             }
             if (Objects.isNull(entry.next)) {
                 entry.next = dictEntry;
+                ht.used++;
                 break;
             }
             entry = entry.next;
         }
-        ht.used++;
     }
 
     /**
@@ -89,7 +91,7 @@ public class Dict<K, V> {
 
         // 跳过hash表中的空位置
         do {
-            // 超过界限，rehash完成，h[0]变为h[0]，ht[1]置为空
+            // 超过边界，rehash完成，h[0]变为h[0]，ht[1]置为空
             if (rehashIdx >= ht[0].table.length) {
                 ht[0] = ht[1];
                 ht[1] = null;
@@ -143,9 +145,15 @@ public class Dict<K, V> {
     }
 
     public V dictFetchValue(K key) {
-        V v;
-        if (rehashIdx > -1 && Objects.nonNull(v = dictFetchValueRaw(ht[1], key))) {
-            return v;
+        // 处于rehash状态，直接rehash。
+        if (rehashIdx > -1) {
+            rehash();
+        }
+
+        // rehash状态先从ht[1]找，找不到再从ht[0]找
+        if (rehashIdx > -1) {
+            V v = dictFetchValueRaw(ht[1], key);
+            return Objects.nonNull(v) ? v : dictFetchValueRaw(ht[0], key);
         }
         return dictFetchValueRaw(ht[0], key);
     }
@@ -160,11 +168,24 @@ public class Dict<K, V> {
     }
 
     public V getRandomKey() {
+        // todo
         return null;
     }
 
     public Dict<K, V> dictDelete(K key) {
-        // 删除的时候小于8就不再缩小rehash
+        dictDeleteRow(ht[0], key);
+        if (rehashIdx > -1) {
+            dictDeleteRow(ht[1], key);
+        }
+
+        if (rehashIdx > -1) {
+            // 处于rehash状态，直接rehash。
+            rehash();
+        } else if ((double) ((ht[0].used) / ht[0].table.length) < 0.1) {
+            // 不在rehash状态，满足负载因子条件，创建ht[1]，开始收缩rehash
+            reduceDictHt();
+            rehash();
+        }
         return this;
     }
 
