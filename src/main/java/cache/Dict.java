@@ -168,6 +168,9 @@ public class Dict<K, V> {
     }
 
     public V getRandomKey() {
+        int used = (int) (ht[0].used + (Objects.nonNull(ht[1]) ? ht[1].used : 0));
+        int randomInt = random.nextInt(used);
+
         // todo
         return null;
     }
@@ -189,7 +192,27 @@ public class Dict<K, V> {
         return this;
     }
 
-    private Dict<K, V> dictDeleteRow(DictHt<K, V> ht, K key) {
-        return this;
+    private void dictDeleteRow(DictHt<K, V> ht, K key) {
+        int position = (int) (key.hashCode() & ht.sizeMask);
+        DictEntry<K, V> entry = ht.table[position];
+
+        if (Objects.isNull(entry)) {
+            return;
+        }
+
+        if (key.equals(entry.key)) {
+            ht.table[position] = entry.next;
+            ht.used--;
+            return;
+        }
+
+        while (Objects.nonNull(entry.next)) {
+            if (key.equals(entry.next.key)) {
+                entry.next = entry.next.next;
+                ht.used--;
+                break;
+            }
+            entry = entry.next;
+        }
     }
 }
