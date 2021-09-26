@@ -34,9 +34,10 @@
         </dependency>
 
         <dependency>
-            <groupId>io.mateu</groupId>
+            <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.11.97</version>
+            <version>1.18.20</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
