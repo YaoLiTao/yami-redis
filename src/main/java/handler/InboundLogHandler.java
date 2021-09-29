@@ -7,6 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.apache.log4j.Logger;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -19,7 +20,7 @@ public class InboundLogHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.debug("入站数据:\n" + ((ByteBuf) msg).toString(Charset.forName("UTF-8")));
+        logger.debug("入站数据:\n" + ((ByteBuf) msg).toString(StandardCharsets.UTF_8));
         ctx.fireChannelRead(msg);
     }
 

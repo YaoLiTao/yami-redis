@@ -21,7 +21,7 @@ import static handler.RespState.*;
 public class RespDispatcher extends ByteToMessageDecoder {
 
     // 日志
-    private Logger logger = Logger.getLogger(RespDispatcher.class);
+    private final Logger logger = Logger.getLogger(RespDispatcher.class);
 
     private RespState state = DECODE_PARAM_COUNT;
     // 参数数量
